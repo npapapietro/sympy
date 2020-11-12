@@ -1,4 +1,4 @@
-from .cartan_type import Standard_Cartan
+from .cartan_base import Standard_Cartan
 from sympy.core.backend import eye
 
 class TypeB(Standard_Cartan):
