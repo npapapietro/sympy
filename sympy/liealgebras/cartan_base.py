@@ -1,5 +1,5 @@
 from sympy.core import Basic
-
+from sympy.core.backend import zeros
 class Standard_Cartan(Basic):
     """
     Semi-Concrete base class for Cartan types such as A4, etc
@@ -27,5 +27,15 @@ class Standard_Cartan(Basic):
         """
         Virtual method for generating the cartan matrix for this algebra.
         """
-        pass
+        r = self.rank()
+        cartan_matrix = zeros(r,r)
+        for i, sr_i in enumerate(self.simple_roots()):
+            for j, sr_j in enumerate(self.simple_roots()):
+                cartan_matrix[i,j] = 2 * sr_i.dot(sr_j) / sr_i.dot(sr_i)
+        return cartan_matrix
 
+    def simple_roots(self):
+        """
+        Virtual method defined in all subclasses depending on the algebra type
+        """
+        pass

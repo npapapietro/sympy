@@ -73,7 +73,8 @@ class TypeA(Standard_Cartan):
         return self.basic_root(i-1, i)
 
     def simple_roots(self):
-        """Returns the simple roots of the algebra.
+        """
+        Returns the simple roots of the algebra.
         """
         return [Matrix(self.simple_root(i+1)).T for i in range(self.n)]
 
@@ -139,17 +140,7 @@ class TypeA(Standard_Cartan):
         [ 0,  0, -1,  2]])
 
         """
-
-        n = self.n
-        m = 2 * eye(n)
-        i = 1
-        while i < n-1:
-            m[i, i+1] = -1
-            m[i, i-1] = -1
-            i += 1
-        m[0,1] = -1
-        m[n-1, n-2] = -1
-        return m
+        return super().cartan_matrix()
 
     def basis(self):
         """
