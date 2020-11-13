@@ -1,5 +1,5 @@
 from .cartan_base import Standard_Cartan
-from sympy.core.backend import eye
+from sympy.core.backend import eye, zeros, Matrix
 
 
 class TypeA(Standard_Cartan):
@@ -69,8 +69,14 @@ class TypeA(Standard_Cartan):
         [1, -1, 0, 0, 0]
 
         """
-
+        if i < 1 or i > self.n: raise ValueError("Simple root does not exist.")
         return self.basic_root(i-1, i)
+
+    def simple_roots(self):
+        """Returns the simple roots of the algebra.
+        """
+        return [Matrix(self.simple_root(i+1)).T for i in range(self.n)]
+
 
     def positive_roots(self):
         """
@@ -159,8 +165,10 @@ class TypeA(Standard_Cartan):
         n = self.n
         return "su(" + str(n + 1) + ")"
 
+
     def dynkin_diagram(self):
         n = self.n
         diag = "---".join("0" for i in range(1, n+1)) + "\n"
         diag += "   ".join(str(i) for i in range(1, n+1))
         return diag
+

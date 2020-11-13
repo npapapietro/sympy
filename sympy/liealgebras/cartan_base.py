@@ -2,7 +2,7 @@ from sympy.core import Basic
 
 class Standard_Cartan(Basic):
     """
-    Concrete base class for Cartan types such as A4, etc
+    Semi-Concrete base class for Cartan types such as A4, etc
     """
 
     def __new__(cls, series, n):
@@ -22,3 +22,10 @@ class Standard_Cartan(Basic):
         Returns the type of the Lie algebra
         """
         return self.series
+
+    def cartan_matrix(self):
+        """
+        Virtual method for generating the cartan matrix for this algebra.
+        """
+        pass
+
