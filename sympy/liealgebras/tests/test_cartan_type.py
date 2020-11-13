@@ -1,4 +1,5 @@
-from sympy.liealgebras.cartan_type import CartanType, Standard_Cartan
+from sympy.liealgebras.cartan_type import CartanType
+from sympy.liealgebras.cartan_base import Standard_Cartan
 
 def test_Standard_Cartan():
     c = CartanType("A4")

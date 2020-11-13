@@ -1,5 +1,5 @@
 from sympy.core import Basic
-from .type_a import SU
+from .su import SU
 
 def group_parser(name: str):
     """Returns tuple that separates dimension from type of algebra/group
