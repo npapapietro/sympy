@@ -72,12 +72,6 @@ class TypeA(Standard_Cartan):
         if i < 1 or i > self.n: raise ValueError("Simple root does not exist.")
         return self.basic_root(i-1, i)
 
-    def simple_roots(self):
-        """
-        Returns the simple roots of the algebra.
-        """
-        return [Matrix(self.simple_root(i+1)).T for i in range(self.n)]
-
 
     def positive_roots(self):
         """
