@@ -1,3 +1,4 @@
+from typing import List
 from sympy.matrices.dense import MutableDenseMatrix
 from sympy.core import Basic
 from sympy.matrices import zeros, Matrix, eye, ones
@@ -57,12 +58,15 @@ class Standard_Cartan(Basic):
         - https://mathworld.wolfram.com/CartanMatrix.html
 
         """
+        if hasattr(self, "_cartan_matrix"):
+            return self._cartan_matrix
         r = self.rank
         cartan_matrix = zeros(r,r)
         for i, sr_i in enumerate(self.simple_roots()):
             for j, sr_j in enumerate(self.simple_roots()):
                 cartan_matrix[j,i] = 2 * sr_i.dot(sr_j) / sr_i.dot(sr_i)
-        return cartan_matrix
+        self._cartan_matrix = cartan_matrix
+        return self._cartan_matrix
 
     def cocartan_matrix(self):
         r"""
@@ -79,8 +83,11 @@ class Standard_Cartan(Basic):
             \langle c_i, w_j \rangle = \delta_{ij}
 
         """
-        return Matrix([
+        if hasattr(self, "_cocartan_matrix"):
+            return self._cocartan_matrix
+        self._cocartan_matrix = Matrix([
                 2 * x / x.dot(x) for x in self.simple_roots()])
+        return self._cocartan_matrix
 
     def omega_matrix(self):
         """
@@ -88,8 +95,10 @@ class Standard_Cartan(Basic):
         the fundamental weights of the algebra in the orthogonal
         basis.
         """
-
-        return self.cocartan_matrix().pinv().T
+        if hasattr(self, "_omega_matrix"):
+            return self._omega_matrix
+        self._omega_matrix = self.cocartan_matrix().pinv().T
+        return self._omega_matrix
 
     def simple_root(self, i):
         """
@@ -98,7 +107,7 @@ class Standard_Cartan(Basic):
         raise NotImplementedError("Do not call this method directly from the base class.")
 
 
-    def simple_roots(self):
+    def simple_roots(self) -> List[Matrix]:
         """
         Returns the simple roots of the algebra.
         """
@@ -191,7 +200,7 @@ class Standard_Cartan(Basic):
         omega_matrix = self.omega_matrix()
         return [x * omega_matrix for x in sorbits]
 
-    def roots(self):
+    def roots(self) -> Matrix:
         """Returns the number of total roots in the algebra"""
         raise NotImplementedError("Do not call this method directly from the base class.")
 
@@ -228,8 +237,11 @@ class Standard_Cartan(Basic):
     def positive_roots(self):
         """Returns the set of all positive roots that are
         """
+        if hasattr(self, "_positive_roots"):
+            return self._positive_roots
         n_pos = self.roots() // 2
-        return self.rootsystem()[:n_pos]
+        self._positive_roots = self.rootsystem()[:n_pos]
+        return self._positive_roots
 
     def orbit(self, head, stabilizer=None):
         """
@@ -293,3 +305,176 @@ class Standard_Cartan(Basic):
             master_list += ref_list
             master_hash.update(ref_list_hash)
         return master_list
+
+    def quadratic_form(self):
+        if hasattr(self, "_quadratic_form"):
+            return self._quadratic_form
+        quadratic_form = zeros(self.rank)
+        sr = self.simple_roots()
+        for i in range(self.rank):
+            quadratic_form[i,i] = sr[i].dot(sr[i]) / 2
+        self._quadratic_form = self.cartan_matrix().pinv() * quadratic_form
+        return self._quadratic_form
+
+    def to_ortho(self, weight, basis):
+        if basis == "orthogonal":
+            return weight
+        if basis == "alpha":
+            return self.omega_matrix().T * self.cartan_matrix().T * weight
+        if basis == "omega":
+            return weight*self.omega_matrix().T
+        raise KeyError("Lie basis not found")
+
+    def to_alpha(self, weight, basis):
+        if basis == "orthogonal":
+            return weight * self.omega_matrix().pinv() * self.cartan_matrix().pinv()
+        if basis == "alpha":
+            return weight
+        if basis == "omega":
+            return weight * self.cartan_matrix().pinv()
+        raise KeyError("Lie basis not found")
+
+    def to_omega(self, weight, basis):
+        if basis == "orthogonal":
+            return weight * self.omega_matrix().pinv()
+        if basis == "alpha":
+            return weight * self.cartan_matrix().T 
+        if basis == "omega":
+            return weight
+        raise KeyError("Lie basis not found")
+    
+    def dominant_weights(self, weights, basis="omega"):
+        dominant_weights = []
+        for w in weights:
+            w = self.to_omega(w, basis)
+            if all([x >=0 for x in w]):
+                dominant_weights.append(w)
+        return dominant_weights
+
+    def weight_tower(self, weight=None, basis="omega"):
+
+        if weight is None:
+            orbits = []
+            for sr in self.simple_roots():
+                orbits += self.orbit(sr)
+            
+            orbits = sorted(set([tuple(x) for x in orbits]))
+
+            return [Matrix([[*x]]) for x in orbits] + \
+                [Matrix([0] * self.rank).T] * self.rank
+
+        tower = [self.to_omega(weight, basis)]
+        sr = [self.to_omega(x, "orthogonal") for x in self.simple_roots()]
+
+        for i in range(2 * self.k_level(tower[0]) + 1):
+            for j in range(self.rank):
+                p = 1
+                while p <= tower[i][j]:
+                    current = tower[i] - p * sr[j]
+                    if current not in tower:
+                        tower.append(current)
+                    p+=1
+
+        dominant_weights = self.dominant_weights(tower)
+
+        weight_tower = []
+        for w in dominant_weights:
+            multiplicity = self.multiplicity(w)
+            multi = self.freudenthals_recursion(w,  dominant_weights,  multiplicity)
+            for i in range(multi):
+                orbit = self.orbit(self.to_ortho(w, "omega"))
+                weight_tower += orbit
+
+        return weight_tower
+        
+
+    def k_level(self, weight, basis="omega"):
+        return sum(self.to_alpha(weight, basis))
+
+    def chamber_rotate(self, weight, counter, basis="omega"):
+        
+        weight = self.to_omega(weight, basis)
+        if all([x >=0 for x in weight]):
+            return weight, counter
+
+        reflection_matrix = lambda v: eye(len(v)) - 2 * v.T * v / v.dot(v)
+
+        reflected = weight
+        max_loop = 0
+        while max_loop < 10 ** self.rank:
+            for sr in self.simple_roots():
+                counter *= -1
+
+                temp = reflection_matrix(sr) * self.to_ortho(reflected, "omega")
+                reflected = self.to_omega(temp, "orthogonal")
+
+                if all([x >=0 for x in reflected]):
+                    return reflected, counter
+            max_loop += 1
+
+        raise  StopIteration("Max loop reached")
+        
+    def multiplicity(self, weight, basis="omega"):
+        multiplicity = []
+        stabs = set()
+
+        weight = self.to_omega(weight, basis)
+
+        for idx, i in enumerate(weight):
+            if i == 0:
+                stabs.add(idx)
+
+        xis = []
+        pr = [self.to_omega(x, "orthogonal") for x in self.positive_roots()]
+        for pr in self.positive_roots():
+            if all([x >= 0 for x in pr]):
+                xis.append(pr)
+        
+        for xi in xis:
+            xi_stab = set()
+            temp = self.to_alpha(xi, "omega")
+            for i in range(self.rank):
+                if temp[i] > 0:
+                    xi_stab.add(i)
+            diff = xi_stab.difference(stabs)
+
+            orbit = self.orbit(self.to_ortho(xi, "omega"), stabs)
+            if len(diff) == 0:
+                multiplicity.append((len(orbit), xi))
+            else:
+                multiplicity.append((2 * len(orbit), xi))
+            
+        return multiplicity
+
+    def freudenthals_recursion(self, weight, dominant_weights, stabilized_orbits, basis="omega"):
+        
+        highest_weight = dominant_weights[0]
+        k_current = self.k_level(weight, basis)
+        k_highest = self.k_level(weight, basis)
+
+        if weight == highest_weight:
+            return 1
+
+        dominant_weights = [self.to_omega(x, basis) for x in dominant_weights]
+        weight = self.to_omega(weight, basis)
+        stabilized_orbits = [self.to_omega(x, basis) for x in stabilized_orbits]
+
+        dummy = 0
+        k = 1
+        s = 1
+
+        while True:
+            for stab in stabilized_orbits:
+                next_w = weight + k * stab[1]
+                rotated, dummy = self.chamber_rotate(next_w, dummy, "omega")
+                if rotated not in dominant_weights:
+                    inner = rotated.T * self.quadratic_form() * stab[1]
+                    s += inner * self.freudenthals_recursion(rotated, dominant_weights, self.multiplicity(rotated, "omega")) * stab[0]
+            k += 1
+            if k >= (k_highest - k_current):
+                break
+        rho = Matrix([[1] * self.rank])
+        d1 = (highest_weight + rho).T * self.quadratic_form() * (highest_weight + rho)
+        d2 = (weight + rho).T * self.quadratic_form() * (weight + rho)
+
+        return s / (d1 - d2)
