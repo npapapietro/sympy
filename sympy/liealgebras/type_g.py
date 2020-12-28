@@ -53,7 +53,7 @@ class TypeG(Standard_Cartan):
 
     def roots(self):
         """
-        Returns the total number of roots of G_2"
+        Returns the total number of roots of G_2
         """
         return 12
 
