@@ -10,11 +10,11 @@ from functools import wraps
 def list2matrix(func):
     """Decorator for functions that take
     vectors as args and need to be in the Matrix
-    object.  Allows for simple conversion while not 
+    object.  Allows for simple conversion while not
     populating each function with explicit conversion.
     Really only effective and tested for Standard_Cartan methods."""
     def checkmat(x):
-        if isinstance(x, list):
+        if isinstance(x, list) or isinstance(x, tuple):
             x = Matrix(x)
             if x.shape[-1] == 1:
                 x = x.T
@@ -38,8 +38,8 @@ class Standard_Cartan(Basic):
     certain choices about how to represent the algebra.  This class is never meant to be
     called directly. It is exported as `CartanType` and should be called that way.
 
-    Most of the methods are implemented from Mathematica library LieART and the 
-    text by Howard Georgi. Sources are listed below and additional sources, if 
+    Most of the methods are implemented from Mathematica library LieART and the
+    text by Howard Georgi. Sources are listed below and additional sources, if
     included, are on each method.
 
     Examples
@@ -138,7 +138,7 @@ class Standard_Cartan(Basic):
         Returns the i'th simple root in the orthogonal basis.
         """
         raise NotImplementedError("Do not call this method directly from the base class.")
-    
+
     # explicit return annotation to help pylance users
     def simple_roots(self) -> list:
         """
@@ -237,7 +237,7 @@ class Standard_Cartan(Basic):
         """Returns the number of total roots in the algebra"""
         raise NotImplementedError("Do not call this method directly from the base class.")
 
-    
+
     def root_level(self, root, basis='orthogonal'):
         """Returns the root level of the root. The root level is calculated
         by rotating by the omega matrix and then summing the rotated vector.
@@ -340,7 +340,7 @@ class Standard_Cartan(Basic):
         return sorted((self.basis_transform(x,"orthogonal", basis) for x in master_list), key=tuple)
 
     def quadratic_form(self):
-        r"""Returns the metric tensor of the algebra. Because of 
+        r"""Returns the metric tensor of the algebra. Because of
         usefulness in calculations, it is returned in the omega basis.
 
         Metric tensor in orthogonal basis is
@@ -373,7 +373,7 @@ class Standard_Cartan(Basic):
         """Transforms a weight from basis_in to basis_out.
         Basis must be in {"orthogonal", "omega", "alpha"}.
         """
-        
+
         if basis_out == "orthogonal":
             return self.to_orthogonal(weight, basis_in)
         if basis_out == "omega":
@@ -385,7 +385,7 @@ class Standard_Cartan(Basic):
     @list2matrix
     def to_orthogonal(self, weight, basis):
         """Returns the weight in the orthogonal basis from the current
-        basis. The orthogonal basis is the basis where simple roots are 
+        basis. The orthogonal basis is the basis where simple roots are
         written in a Euclidean subspace.
         """
         is_row = weight.shape[0] == 1
@@ -418,7 +418,7 @@ class Standard_Cartan(Basic):
         if basis == "omega":
             return weight * self.cartan_matrix().pinv()
         raise KeyError("Lie basis not found")
-    
+
     @list2matrix
     def to_omega(self, weight, basis):
         """Returns the weight in the omega basis from the current
@@ -434,16 +434,16 @@ class Standard_Cartan(Basic):
         if basis == "orthogonal":
             return weight * self.omega_matrix().pinv()
         if basis == "alpha":
-            return weight * self.cartan_matrix() 
+            return weight * self.cartan_matrix()
         if basis == "omega":
             return weight
         raise KeyError("Lie basis not found")
-    
+
     @list2matrix
     def single_dominant_weights(self, irrep, basis="omega"):
         r"""Returns the single dominant weights of the irreducible representation.
-        This is done by recursively subtracting positive roots until no new dominant root is 
-        found. A dominant root is defined to be 
+        This is done by recursively subtracting positive roots until no new dominant root is
+        found. A dominant root is defined to be
 
         .. math::
 
@@ -475,7 +475,7 @@ class Standard_Cartan(Basic):
 
             if len(diff) == 0:
                 break
-            
+
             for x in diff:
                 tower.append(Matrix([[*x]]))
                 tower_set.add(x)
@@ -495,7 +495,7 @@ class Standard_Cartan(Basic):
         k = int(self.k_level(irrep-weight, basis))
 
         # group the xi, weight(if it is dominant) and its multiplicity
-        # by adding xi to it over and over. This is analagous to 
+        # by adding xi to it over and over. This is analagous to
         # the ladder operator in quantum mechanics (actually this is where qm gets it from)
         highest_weights = []
         for i in range(k):
@@ -526,7 +526,7 @@ class Standard_Cartan(Basic):
         if basis == "orthogonal":
             return weight1.dot(weight2)
         weight1 = self.to_omega(weight1, basis)
-        weight2 = self.to_omega(weight2, basis) 
+        weight2 = self.to_omega(weight2, basis)
         return (weight1 * self.quadratic_form()).dot(weight2)
 
     @list2matrix
@@ -536,7 +536,7 @@ class Standard_Cartan(Basic):
         return sum(self.to_alpha(weight, basis))
 
     def chamber_rotate(self, weight, basis="omega"):
-        """Returns the tuple of (dominant weight, parity) of weight the 
+        """Returns the tuple of (dominant weight, parity) of weight the
         into the dominant chamber using weyl reflections across the weyl chambers.
         """
         return _chamber_rotate(self,weight, basis)
@@ -544,10 +544,10 @@ class Standard_Cartan(Basic):
 
     @list2matrix
     def xi_multiplicity(self, weight, basis="omega"):
-        """Returns a list of tuples that are the multiplicty and xi of 
-        each the weight. 
-        
-        Xi is defined to be a member of the 
+        """Returns a list of tuples that are the multiplicty and xi of
+        each the weight.
+
+        Xi is defined to be a member of the
         positive roots where each coeffcient is positive
         nonzero. The multiplicity is the dimension of that
         xi's orbit.
@@ -579,15 +579,15 @@ class Standard_Cartan(Basic):
             if i == 0:
                 stabs.add(idx)
 
-        # Unique representativeness of the orbit 
-        # xis are the positive roots where weight has nonzero 
+        # Unique representativeness of the orbit
+        # xis are the positive roots where weight has nonzero
         # coeffecients.
         xis = []
         prs = [self.to_omega(x, "orthogonal") for x in self.positive_roots()]
         for pr in prs:
             if all(pr[i] >= 0 for i in stabs):
                 xis.append(pr)
-        
+
         for xi in xis:
             xi_stab = set()
             temp = self.to_alpha(xi, "omega")
@@ -603,7 +603,7 @@ class Standard_Cartan(Basic):
                 xi_multiplicity.append((xi, len(orbit)))
             else:
                 xi_multiplicity.append((xi, 2 * len(orbit)))
-        
+
         # cache for use later, worth it in large ranked classes.
         self._weight_multiplicity_cache[tuple(weight)] = xi_multiplicity
         return xi_multiplicity
@@ -612,12 +612,12 @@ class Standard_Cartan(Basic):
     @list2matrix
     def weight_system(self, irrep, basis="omega"):
         """Returns the entire weight system using the irreducible representation
-        as the highest weight and subtracting down to the lowest weight of the 
-        representation. This can be done by generating the single dominant weights 
+        as the highest weight and subtracting down to the lowest weight of the
+        representation. This can be done by generating the single dominant weights
         from the irrep and calculating their respective multiplicities. Then for joining
         all the weyl orbits (up to their multiplicity factor) for each dominant weight.
         The final result is sorted by k_level.
-        
+
         Examples
         ========
         >>> from sympy.liealgebras import CartanType
@@ -676,9 +676,9 @@ class Standard_Cartan(Basic):
 
     def tensor_product_decompose(self, *weights, basis="omega"):
         """Returns the tensor product between irreducible representations
-        as a the tensor sum of the irreducible representations of their 
+        as a the tensor sum of the irreducible representations of their
         highest weights. This algorithm is based on Klimky's formula.
-        
+
         Examples
         ========
         >>> from sympy.liealgebras import CartanType
@@ -696,7 +696,7 @@ class Standard_Cartan(Basic):
         """
         if len(weights) < 2:
             raise ValueError("Tensor product must have >2 weights")
-        
+
         decomp = []
         N = len(weights)
         for i in range(N-1):
@@ -704,15 +704,15 @@ class Standard_Cartan(Basic):
         return decomp
 
     def _reflection_matrices(self, weight=None):
-        """Returns reflection matricies depending on how 
-        weight is (or isn't) passed. 
-        
-        - If weight is None, then 
-        a set of reflection matrices generated from simple roots are 
-        returned. 
-        - If weight is type of Matrix then a single matrix 
+        """Returns reflection matricies depending on how
+        weight is (or isn't) passed.
+
+        - If weight is None, then
+        a set of reflection matrices generated from simple roots are
+        returned.
+        - If weight is type of Matrix then a single matrix
         is returned by rotating the weight.
-        - If weight is type of list of matrix then 
+        - If weight is type of list of matrix then
         rotation are done on each and returned.
         """
         reflection_matrix = lambda v: eye(len(v)) - 2 * v.T * v / v.dot(v)
@@ -723,10 +723,10 @@ class Standard_Cartan(Basic):
 
         if isinstance(weight, MatrixBase):
             return reflection_matrix(weight)
-        
+
         if isinstance(weight,list):
             return [reflection_matrix(x) for x in weight]
-    
+
 @list2matrix
 def _chamber_rotate(algebra: Standard_Cartan, weight, basis):
     parity = 1
@@ -738,7 +738,7 @@ def _chamber_rotate(algebra: Standard_Cartan, weight, basis):
 
     if weight.shape[0] != 1:
         weight = weight.T
-    
+
     reflected = [algebra.to_orthogonal(weight, basis)]
 
     reflection_matricies = algebra._reflection_matrices()
@@ -773,9 +773,9 @@ def _tensor_product_decomp(algebra, weight1, weight2, basis="omega"):
     weight1 = algebra.to_omega(weight1, basis)
     weight2 = algebra.to_omega(weight2, basis)
 
-    tower1 = algebra.weight_system(weight1) 
+    tower1 = algebra.weight_system(weight1)
     rho = ones(1, algebra.rank)
-    
+
     # calculating the parity upon weyl rotation across chambers
     # and ignoring the weights on the wall
     weight_parities = []
@@ -790,7 +790,7 @@ def _tensor_product_decomp(algebra, weight1, weight2, basis="omega"):
         i+=1
     # sort by weight in omega basis
     weight_parities = sorted(weight_parities, key=lambda x: tuple(x[1]))
-    
+
     # groupby and sum on multiplicity
     for i in adjacent_find(weight_parities, lambda x: x[1]):
         weight_parities[i+1][0] += weight_parities[i][0]
