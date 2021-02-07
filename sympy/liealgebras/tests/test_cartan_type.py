@@ -81,24 +81,24 @@ def test_orbit():
     orbit_sr1 = g2.orbit(sr)
 
     assert orbit_sr1 == [
+        Matrix([[1, 0, -1]]),
         Matrix([[-1, 0, 1]]),
         Matrix([[-1, 1, 0]]),
         Matrix([[0, -1, 1]]),
         Matrix([[0, 1, -1]]),
-        Matrix([[1, -1, 0]]),
-        Matrix([[1, 0, -1]])]
-    
+        Matrix([[1, -1, 0]])]
+
     a2 = CartanType("A2")
 
     orbit_a = a2.orbit(Matrix([[1,0]]), basis="alpha")
 
     assert orbit_a == [
+        Matrix([[1, 1]]),
         Matrix([[-1, -1]]),
         Matrix([[-1, 0]]),
         Matrix([[0, -1]]),
         Matrix([[0, 1]]),
-        Matrix([[1, 0]]),
-        Matrix([[1, 1]])]
+        Matrix([[1, 0]])]
 
 # def test_weight_tower():
 

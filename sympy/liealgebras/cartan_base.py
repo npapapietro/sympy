@@ -4,7 +4,7 @@ from sympy.core import Basic
 from sympy.matrices import zeros, Matrix, eye, ones
 from sympy.core.sympify import _sympify
 from functools import wraps
-
+from .orbit_backend import orbit, root_system
 
 def list2matrix(func):
     """Decorator for functions that take
@@ -30,8 +30,6 @@ def list2matrix(func):
             kwargs[k]=v
         return func(*wargs, **wkwargs)
     return wrapper
-
-from .orbit_backend import orbit, root_system
 
 class Standard_Cartan(Basic):
     """
@@ -252,7 +250,7 @@ class Standard_Cartan(Basic):
         self._positive_roots = self.rootsystem()[:n_pos]
         return self._positive_roots
 
-    def orbit(self, weight, stabilizer=None,basis="orthogonal", **kwargs):
+    def orbit(self, weight, stabilizer=None, basis="orthogonal", **kwargs):
         """
         Returns the orbit of the weight or root by reflecting it
         a plane. A stabilizer may be passed to calculate the orbit using
@@ -271,7 +269,14 @@ class Standard_Cartan(Basic):
         - https://en.wikipedia.org/wiki/Group_action#Orbits_and_stabilizers
 
         """
-        return orbit(self, weight, stabilizer=stabilizer, **kwargs)
+        weight = self.to_orthogonal(weight, basis)
+
+        if self.rank > 5:
+            kwargs["dtype"] = kwargs.get("dtype",float)
+            kwargs["backend"] = kwargs.get("backend","numpy")
+
+        orbits =  orbit(self, weight, stabilizer=stabilizer, **kwargs)
+        return [self.basis_transform(x, "orthogonal", basis) for x in orbits]
 
     def _reflection_matrices(self, weight=None):
         """Returns reflection matricies depending on how

@@ -118,7 +118,3 @@ class TypeE(Standard_Cartan):
         diag += "---".join("0" for i in range(1, n)) + "\n"
         diag += "1   " + "   ".join(str(i) for i in range(2,n))
         return diag
-
-    def orbit(self, weight, stabilizer=None):
-        """Returns the weyl orbit of the weight. Numpy backend is used"""
-        return super().orbit(weight, stabilizer=stabilizer, dtype=float, backend="numpy")
