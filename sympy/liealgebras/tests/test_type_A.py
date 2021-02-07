@@ -1,7 +1,7 @@
 from sympy.liealgebras.cartan_type import CartanType
 from sympy.matrices import Matrix
 
-def test_type_A():
+def test_type_A3():
     c = CartanType("A3")
     m = Matrix(3, 3, [2, -1, 0, -1, 2, -1, 0, -1, 2])
     assert m == c.cartan_matrix()
@@ -26,3 +26,51 @@ def test_type_A():
     except ValueError:
         flag = True
     assert flag
+
+
+def test_type_A6():
+    '''Testing numpy backend'''
+    c = CartanType("A6")
+    m = Matrix([
+        [2, -1, 0, 0, 0, 0],
+        [-1, 2, -1, 0, 0, 0],
+        [0, -1, 2, -1, 0, 0],
+        [0, 0, -1, 2, -1, 0],
+        [0, 0, 0, -1, 2, -1],
+        [0, 0, 0, 0, -1, 2]
+    ])
+    assert m == c.cartan_matrix()
+
+    simpleroot0 = Matrix([[1, -1, 0, 0, 0, 0, 0]])
+
+    assert simpleroot0 == c.simple_roots()[0]
+
+    # take sample for brevity
+    orbit = c.orbit(simpleroot0)
+    assert len(orbit) == 42
+
+    assert orbit[0] == Matrix([[1, 0, 0, 0, 0, 0, -1]])
+    assert orbit[6] == Matrix([[-1, 1, 0, 0, 0, 0, 0]])
+
+    assert Matrix(c.positive_roots()) == Matrix([
+        [1, 0, 0, 0, 0, 0, -1],
+        [0, 1, 0, 0, 0, 0, -1],
+        [1, 0, 0, 0, 0, -1, 0],
+        [0, 1, 0, 0, 0, -1, 0],
+        [0, 0, 1, 0, 0, 0, -1],
+        [1, 0, 0, 0, -1, 0, 0],
+        [0, 1, 0, 0, -1, 0, 0],
+        [0, 0, 1, 0, 0, -1, 0],
+        [0, 0, 0, 1, 0, 0, -1],
+        [1, 0, 0, -1, 0, 0, 0],
+        [0, 1, 0, -1, 0, 0, 0],
+        [0, 0, 1, 0, -1, 0, 0],
+        [0, 0, 0, 1, 0, -1, 0],
+        [0, 0, 0, 0, 1, 0, -1],
+        [1, 0, -1, 0, 0, 0, 0],
+        [0, 1, -1, 0, 0, 0, 0],
+        [0, 0, 1, -1, 0, 0, 0],
+        [0, 0, 0, 1, -1, 0, 0],
+        [0, 0, 0, 0, 1, -1, 0],
+        [0, 0, 0, 0, 0, 1, -1],
+        [1, -1, 0, 0, 0, 0, 0]])

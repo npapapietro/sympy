@@ -1,5 +1,3 @@
-from sympy.functions.elementary.miscellaneous import sqrt
-from sympy.core.numbers import Rational
 from sympy import Matrix, S
 from sympy.liealgebras.cartan_type import CartanType
 
@@ -18,70 +16,369 @@ def test_simpleroots():
     c = CartanType("E6")
     s = c.simple_roots()
 
-    assert s[0].tolist() == [[1, -1, 0, 0, 0, 0]]
-    assert s[3].tolist() == [[0, 0, 0, 1, 1, 0]]
-    assert s[4].tolist() == [[
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        sqrt(3)*Rational(1,2)]]
-    assert s[-1].tolist() == [[0, 0, 0, 1, -1, 0]]
+    assert Matrix(s) == Matrix([
+        [S.Half, -S.Half, -S.Half,
+        -S.Half, -S.Half, -S.Half,
+        -S.Half, S.Half],
+        [-1, 1, 0, 0, 0, 0, 0, 0],
+        [0, -1, 1, 0, 0, 0, 0, 0],
+        [0, 0, -1, 1, 0, 0, 0, 0],
+        [0, 0, 0, -1, 1, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0]])
+
+
     c = CartanType("E7")
     s = c.simple_roots()
 
-    assert s[0].tolist() == [[1, -1, 0, 0, 0, 0, 0]]
-    assert s[4].tolist() == [[0, 0, 0, 0, 1, 1, 0]]
-    assert s[5].tolist() == [[
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        -Rational(1,2),
-        sqrt(2)*Rational(1,2)]]
-    assert s[-1].tolist() == [[0, 0, 0, 0, 1, -1, 0]]
+    assert Matrix(s) == Matrix([
+        [S.Half, -S.Half, -S.Half,
+        -S.Half, -S.Half, -S.Half,
+        -S.Half, S.Half],
+       [-1, 1, 0, 0, 0, 0, 0, 0],
+       [0, -1, 1, 0, 0, 0, 0, 0],
+       [0, 0, -1, 1, 0, 0, 0, 0],
+       [0, 0, 0, -1, 1, 0, 0, 0],
+       [0, 0, 0, 0, -1, 1, 0, 0],
+       [1, 1, 0, 0, 0, 0, 0, 0]])
 
-def test_pos_roots():
-    """The order of the roots can be finicky because E has a
-    lot of roots with the same weight level."""
+    c = CartanType("E8")
+    s = c.simple_roots()
+
+    assert Matrix(s) == Matrix([
+        [S.Half, -S.Half, -S.Half,
+        -S.Half, -S.Half, -S.Half,
+        -S.Half, S.Half],
+        [-1, 1, 0, 0, 0, 0, 0, 0],
+        [0, -1, 1, 0, 0, 0, 0, 0],
+        [0, 0, -1, 1, 0, 0, 0, 0],
+        [0, 0, 0, -1, 1, 0, 0, 0],
+        [0, 0, 0, 0, -1, 1, 0, 0],
+        [0, 0, 0, 0, 0, -1, 1, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0]])
+
+def test_Cartan():
+    c = CartanType("E6")
+    s = c.cartan_matrix()
+
+    assert Matrix(s) == Matrix([
+        [ 2, -1,  0,  0,  0,  0],
+        [-1,  2, -1,  0,  0,  0],
+        [ 0, -1,  2, -1,  0, -1],
+        [ 0,  0, -1,  2, -1,  0],
+        [ 0,  0,  0, -1,  2,  0],
+        [ 0,  0, -1,  0,  0,  2]])
+
+
+    c = CartanType("E7")
+    s = c.cartan_matrix()
+
+    assert Matrix(s) == Matrix([
+        [ 2, -1,  0,  0,  0,  0,  0],
+        [-1,  2, -1,  0,  0,  0,  0],
+        [ 0, -1,  2, -1,  0,  0, -1],
+        [ 0,  0, -1,  2, -1,  0,  0],
+        [ 0,  0,  0, -1,  2, -1,  0],
+        [ 0,  0,  0,  0, -1,  2,  0],
+        [ 0,  0, -1,  0,  0,  0,  2]])
+
+    c = CartanType("E8")
+    s = c.cartan_matrix()
+
+    assert Matrix(s) == Matrix([
+        [ 2, -1,  0,  0,  0,  0,  0,  0],
+        [-1,  2, -1,  0,  0,  0,  0,  0],
+        [ 0, -1,  2, -1,  0,  0,  0, -1],
+        [ 0,  0, -1,  2, -1,  0,  0,  0],
+        [ 0,  0,  0, -1,  2, -1,  0,  0],
+        [ 0,  0,  0,  0, -1,  2, -1,  0],
+        [ 0,  0,  0,  0,  0, -1,  2,  0],
+        [ 0,  0, -1,  0,  0,  0,  0,  2]])
+
+def test_orbit():
+    """These results are compared to outputs of
+    Mathematica's implementation of lie algebras"""
+    # ignoring on large tests without numpy
+    try:
+        import numpy # noqa
+    except ImportError:
+        return
 
     c = CartanType("E6")
-    assert c.positive_roots() == [
-        Matrix([[S.Half, S.Half, S.Half, S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[S.Half, S.Half, S.Half, -S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[S.Half, S.Half, -S.Half, S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[S.Half, S.Half, -S.Half, -S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[S.Half, -S.Half, S.Half, S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[-S.Half, S.Half, S.Half, S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[1, 1, 0, 0, 0, 0]]),
-        Matrix([[S.Half, -S.Half, S.Half, -S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[-S.Half, S.Half, S.Half, -S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[1, 0, 1, 0, 0, 0]]),
-        Matrix([[S.Half, -S.Half, -S.Half, S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[0, 1, 1, 0, 0, 0]]),
-        Matrix([[-S.Half, S.Half, -S.Half, S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[1, 0, 0, 1, 0, 0]]),
-        Matrix([[S.Half, -S.Half, -S.Half, -S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[0, 1, 0, 1, 0, 0]]),
-        Matrix([[-S.Half, S.Half, -S.Half, -S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[-S.Half, -S.Half, S.Half, S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[1, 0, 0, 0, -1, 0]]),
-        Matrix([[1, 0, 0, 0, 1, 0]]),
-        Matrix([[0, 1, 0, 0, -1, 0]]),
-        Matrix([[0, 1, 0, 0, 1, 0]]),
-        Matrix([[0, 0, 1, 1, 0, 0]]),
-        Matrix([[-S.Half, -S.Half, S.Half, -S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[1, 0, 0, -1, 0, 0]]),
-        Matrix([[0, 1, 0, -1, 0, 0]]),
-        Matrix([[0, 0, 1, 0, -1, 0]]),
-        Matrix([[0, 0, 1, 0, 1, 0]]),
-        Matrix([[-S.Half, -S.Half, -S.Half, S.Half, S.Half, sqrt(3)/2]]),
-        Matrix([[1, 0, -1, 0, 0, 0]]),
-        Matrix([[0, 1, -1, 0, 0, 0]]),
-        Matrix([[0, 0, 1, -1, 0, 0]]),
-        Matrix([[0, 0, 0, 1, -1, 0]]),
-        Matrix([[0, 0, 0, 1, 1, 0]]),
-        Matrix([[-S.Half, -S.Half, -S.Half, -S.Half, -S.Half, sqrt(3)/2]]),
-        Matrix([[1, -1, 0, 0, 0, 0]])]
+    s = c.simple_roots()
+    orbit = c.orbit(s[0])
+
+    assert len(orbit) == 72
+    assert orbit[0] == Matrix([[1, 1, 0, 0, 0, 0, 0, 0]])
+    assert orbit[10] == Matrix([
+        [-S.Half, -S.Half, -S.Half, -S.Half,
+         S.Half, -S.Half, -S.Half, S.Half]])
+    assert orbit[30] == Matrix([[0, -1, 1, 0, 0, 0, 0, 0]])
+
+
+    c = CartanType("E7")
+    s = c.simple_roots()
+    orbit = c.orbit(s[0])
+
+    assert len(orbit) == 126
+    assert orbit[0] == Matrix([[1, 1, 0, 0, 0, 0, 0, 0]])
+    assert orbit[49] == Matrix([
+        [0, -1, 0, 1, 0, 0, 0, 0]])
+    assert orbit[99] == Matrix([
+        [S.Half, -S.Half, S.Half, S.Half,
+        S.Half, S.Half, -S.Half, S.Half]])
+
+    c = CartanType("E8")
+    s = c.simple_roots()
+    orbit = c.orbit(s[0])
+
+    assert len(orbit) == 240
+    assert orbit[0] == Matrix([[1, 1, 0, 0, 0, 0, 0, 0]])
+    assert orbit[49] == Matrix([
+        [-S.Half, S.Half, -S.Half, -S.Half,
+        -S.Half, S.Half, -S.Half, -S.Half]])
+    assert orbit[-1] == Matrix([[1, 0, 1, 0, 0, 0, 0, 0]])
+
+def test_positive_roots():
+    """These results are compared to outputs of
+    Mathematica's implementation of lie algebras"""
+
+    # ignoring on large tests
+    try:
+        import numpy # noqa
+    except ImportError:
+        return
+    c = CartanType("E6")
+    p = c.positive_roots()
+
+    assert Matrix(p) == Matrix([
+        [S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 0, 0, 1, 1, 0, 0, 0],
+        [-S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 0, 1, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 0, 0, 0],
+        [S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [-1, 0, 0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 1, 0, 0, 0],
+        [S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 1, 0, 0, 0, 0, 0],
+        [-1, 0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 0, 1, 0, 0, 0, 0],
+        [0, -1, 0, 0, 1, 0, 0, 0],
+        [-S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 0, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, -1, 0, 1, 0, 0, 0, 0],
+        [0, 0, -1, 0, 1, 0, 0, 0],
+        [-S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 1, 0, 0, 0, 0, 0, 0],
+        [0, -1, 1, 0, 0, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, -1, 1, 0, 0, 0, 0],
+        [0, 0, 0, -1, 1, 0, 0, 0],
+        [S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],])
+
+    c = CartanType("E7")
+    p = c.positive_roots()
+
+    assert Matrix(p) == Matrix([
+        [0, 0, 0, 0, 0, 0, -1, 1],
+        [-S.Half, S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 0, 0, 1, 1, 0, 0],
+        [-S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [-S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 0, 1, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 1, 0, 0],
+        [-S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0, 0],
+        [S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 1, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 0, 0, 0],
+        [-1, 0, 0, 0, 0, 1, 0, 0],
+        [1, 0, 0, 0, 0, 1, 0, 0],
+        [S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [-1, 0, 0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 1, 0, 0, 0],
+        [0, -1, 0, 0, 0, 1, 0, 0],
+        [S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 1, 0, 0, 0, 0, 0],
+        [-1, 0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 0, 1, 0, 0, 0, 0],
+        [0, -1, 0, 0, 1, 0, 0, 0],
+        [0, 0, -1, 0, 0, 1, 0, 0],
+        [-S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 0, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, -1, 0, 1, 0, 0, 0, 0],
+        [0, 0, -1, 0, 1, 0, 0, 0],
+        [0, 0, 0, -1, 0, 1, 0, 0],
+        [-S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 1, 0, 0, 0, 0, 0, 0],
+        [0, -1, 1, 0, 0, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, -1, 1, 0, 0, 0, 0],
+        [0, 0, 0, -1, 1, 0, 0, 0],
+        [0, 0, 0, 0, -1, 1, 0, 0],
+        [S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+    ])
+
+    c = CartanType("E8")
+    p = c.positive_roots()
+
+    assert Matrix(p) == Matrix([
+        [0, 0, 0, 0, 0, 0, 1, 1],
+        [0, 0, 0, 0, 0, 1, 0, 1],
+        [0, 0, 0, 0, 1, 0, 0, 1],
+        [0, 0, 0, 1, 0, 0, 0, 1],
+        [0, 0, 1, 0, 0, 0, 0, 1],
+        [0, 1, 0, 0, 0, 0, 0, 1],
+        [-1, 0, 0, 0, 0, 0, 0, 1],
+        [1, 0, 0, 0, 0, 0, 0, 1],
+        [S.Half, S.Half, S.Half, S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, -1, 0, 0, 0, 0, 0, 1],
+        [-S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, 0, -1, 0, 0, 0, 0, 1],
+        [-S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, 0, 0, -1, 0, 0, 0, 1],
+        [-S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, -1, 0, 0, 1],
+        [-S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, 0, -1, 0, 1],
+        [-S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, 0, 0, -1, 1],
+        [-S.Half, S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [S.Half, S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [S.Half, S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, 0, 1, 1, 0],
+        [S.Half, S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, 1, 0, 1, 0],
+        [-S.Half, -S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [0, 0, 0, 0, 1, 1, 0, 0],
+        [0, 0, 0, 1, 0, 0, 1, 0],
+        [-S.Half, S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [0, 0, 0, 1, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0, 0, 1, 0],
+        [-S.Half, S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [0, 0, 0, 1, 1, 0, 0, 0],
+        [0, 0, 1, 0, 0, 1, 0, 0],
+        [0, 1, 0, 0, 0, 0, 1, 0],
+        [-S.Half, S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, -S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half, S.Half],
+        [0, 0, 1, 0, 1, 0, 0, 0],
+        [0, 1, 0, 0, 0, 1, 0, 0],
+        [-1, 0, 0, 0, 0, 0, 1, 0],
+        [1, 0, 0, 0, 0, 0, 1, 0],
+        [S.Half, -S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [S.Half, S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, S.Half],
+        [0, 0, 1, 1, 0, 0, 0, 0],
+        [0, 1, 0, 0, 1, 0, 0, 0],
+        [-1, 0, 0, 0, 0, 1, 0, 0],
+        [1, 0, 0, 0, 0, 1, 0, 0],
+        [0, -1, 0, 0, 0, 0, 1, 0],
+        [S.Half, S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 0, 1, 0, 0, 0, 0],
+        [-1, 0, 0, 0, 1, 0, 0, 0],
+        [1, 0, 0, 0, 1, 0, 0, 0],
+        [0, -1, 0, 0, 0, 1, 0, 0],
+        [0, 0, -1, 0, 0, 0, 1, 0],
+        [S.Half, S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-S.Half, -S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [0, 1, 1, 0, 0, 0, 0, 0],
+        [-1, 0, 0, 1, 0, 0, 0, 0],
+        [1, 0, 0, 1, 0, 0, 0, 0],
+        [0, -1, 0, 0, 1, 0, 0, 0],
+        [0, 0, -1, 0, 0, 1, 0, 0],
+        [0, 0, 0, -1, 0, 0, 1, 0],
+        [-S.Half, -S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 0, 1, 0, 0, 0, 0, 0],
+        [1, 0, 1, 0, 0, 0, 0, 0],
+        [0, -1, 0, 1, 0, 0, 0, 0],
+        [0, 0, -1, 0, 1, 0, 0, 0],
+        [0, 0, 0, -1, 0, 1, 0, 0],
+        [0, 0, 0, 0, -1, 0, 1, 0],
+        [-S.Half, S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+        [-1, 1, 0, 0, 0, 0, 0, 0],
+        [0, -1, 1, 0, 0, 0, 0, 0],
+        [1, 1, 0, 0, 0, 0, 0, 0],
+        [0, 0, -1, 1, 0, 0, 0, 0],
+        [0, 0, 0, -1, 1, 0, 0, 0],
+        [0, 0, 0, 0, -1, 1, 0, 0],
+        [0, 0, 0, 0, 0, -1, 1, 0],
+        [S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, -S.Half, S.Half],
+    ])

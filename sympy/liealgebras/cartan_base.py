@@ -1,6 +1,5 @@
 from sympy.matrices.matrices import MatrixBase
 from sympy.utilities.iterables import flatten
-from sympy.matrices.dense import MutableDenseMatrix
 from sympy.core import Basic
 from sympy.matrices import zeros, Matrix, eye, ones
 from sympy.core.sympify import _sympify
@@ -31,6 +30,8 @@ def list2matrix(func):
             kwargs[k]=v
         return func(*wargs, **wkwargs)
     return wrapper
+
+from .orbit_backend import orbit, root_system
 
 class Standard_Cartan(Basic):
     """
@@ -182,7 +183,7 @@ class Standard_Cartan(Basic):
         """
         return [self.fundamental_weight(i) for i in range(self.omega_matrix().rows)]
 
-    def rootsystem(self):
+    def rootsystem(self, **kwargs):
         """Returns the root system of the group ordered from
         highest root to lowest in the orthogonal basis. The roots are found by reflecting
         each simple root about its hyperplane, repeating this procedure
@@ -190,7 +191,7 @@ class Standard_Cartan(Basic):
         The roots are then weighed and sorted according to weight.
 
         Note: This is a costly calculation for groups with
-        rank > 6, most notably E7 and E8
+        rank > 6, most notably E7 and E8, so numpy backend is employed.
 
         Examples
         ========
@@ -205,33 +206,7 @@ class Standard_Cartan(Basic):
         Matrix([[0, -1, 1]]),
         Matrix([[-1, 0, 1]])]
         """
-        s_r = self.simple_roots()
-        rank = self.rank
-
-        orbits = set()
-        for i in s_r:
-            for r in self.orbit(i):
-                orbits.add(tuple(r))
-
-        zero_roots = [zeros(1, rank)] * rank
-
-        orbits = [Matrix([[*i]]) * self.cocartan_matrix().T for i in orbits] + zero_roots
-
-        # sort roots by their weights
-        orbits_by_level = {}
-        for orb in orbits:
-            level = -self.root_level(orb, 'alpha')
-            current = orbits_by_level.get(level,[])
-            current.append(orb)
-            orbits_by_level[level] = current
-
-        sorbits = []
-        for level in sorted(orbits_by_level.keys()):
-            sorbits += sorted(orbits_by_level[level], key=lambda x: tuple(x))
-
-        # rotate back to the orthogonal basis for consistency
-        omega_matrix = self.omega_matrix()
-        return [x * omega_matrix for x in sorbits]
+        return root_system(self, **kwargs)
 
     def roots(self) -> Matrix:
         """Returns the number of total roots in the algebra"""
@@ -243,6 +218,10 @@ class Standard_Cartan(Basic):
         by rotating by the omega matrix and then summing the rotated vector.
         The basis argument flags which basis the incoming root or weight is in.
 
+        Args:
+            root (Matrix): A Matrix of shape (1, rank)
+            basis (str): Which basis incoming root or weight is in.
+
         Examples
         ========
         >>> from sympy.liealgebras import CartanType
@@ -251,20 +230,21 @@ class Standard_Cartan(Basic):
         >>> g2.root_level(rs[0])
         5
         """
-
         if not hasattr(self, "_cached_r"):
             inverse_cartan = self.cartan_matrix().pinv()
             self._cached_r = inverse_cartan * ones(inverse_cartan.rows, 1)
 
         r = self._cached_r
 
+        # TODO: Add basis features throughout class
         if basis == 'orthogonal':
             root = root * self.omega_matrix().pinv()
 
         return (root * r)[0]
 
     def positive_roots(self):
-        """Returns the set of all positive roots that are
+        """Returns the set of all positive roots that are greater
+        than zero in weight from the rootsystem.
         """
         if hasattr(self, "_positive_roots"):
             return self._positive_roots
@@ -272,7 +252,7 @@ class Standard_Cartan(Basic):
         self._positive_roots = self.rootsystem()[:n_pos]
         return self._positive_roots
 
-    def orbit(self, head, stabilizer=None, basis="orthogonal"):
+    def orbit(self, weight, stabilizer=None,basis="orthogonal", **kwargs):
         """
         Returns the orbit of the weight or root by reflecting it
         a plane. A stabilizer may be passed to calculate the orbit using
@@ -280,64 +260,42 @@ class Standard_Cartan(Basic):
 
         Note the stabilizer starts counting simple roots at index 0
 
+        Args:
+            weight (Matrix): A Matrix of shape (1, rank)
+            stabilizer (Iterable of ints, optional): Per Orbit-Stabilizer
+            theorem, integer iterable of simple root indexes. Defaults to None.
+
         Sources
         =======
         - https://en.wikipedia.org/wiki/Coadjoint_representation#Coadjoint_orbit
         - https://en.wikipedia.org/wiki/Group_action#Orbits_and_stabilizers
+
         """
-        simple_roots = self.simple_roots()
+        return orbit(self, weight, stabilizer=stabilizer, **kwargs)
 
+    def _reflection_matrices(self, weight=None):
+        """Returns reflection matricies depending on how
+        weight is (or isn't) passed.
 
-        if isinstance(head, MutableDenseMatrix):
-            head = head.as_immutable()
+        - If weight is None, then
+        a set of reflection matrices generated from simple roots are
+        returned.
+        - If weight is type of Matrix then a single matrix
+        is returned by rotating the weight.
+        - If weight is type of list (implied of MatrixBase) then
+        rotations are done on each MatrixBase and returned.
+        """
+        reflection_matrix = lambda v: (eye(len(v)) - 2 * v.T * v / v.dot(v)).as_immutable()
 
-        head = self.to_orthogonal(head, basis)
+        # simple_roots generated reflection matrices
+        if weight is None:
+            return [reflection_matrix(x) for x in self.simple_roots()]
 
-        master_list = [head]
-        master_hash = set([tuple(head)])
+        if isinstance(weight, MatrixBase):
+            return reflection_matrix(weight)
 
-        if stabilizer:
-            reflect_loop = [simple_roots[i] for i in stabilizer]
-        else:
-            reflect_loop = simple_roots
-
-
-        # Fill up master list of reflected roots by
-        # continually operating on them until all weights in orbit are found
-
-        # Duplicating each vector as a tuple to allow
-        # for hasing them. This increases performance on
-        # the large groups (rank > 6)
-
-        if not hasattr(self, "_matrix_hash"):
-            self._matrix_hash = {}
-
-        while True:
-            ref_list = []
-            ref_list_hash = set()
-
-            for w in master_list:
-                for r in reflect_loop:
-                    r_hash = tuple(r)
-
-                    x = self._matrix_hash.get(r_hash)
-                    if x:
-                        r_m = x
-                    else:
-                        r_m = self._reflection_matrices(r)
-                        self._matrix_hash[r_hash] = r_m
-
-                    reflected = (r_m * w.T).T
-                    reflected_hashable = tuple(reflected)
-                    if reflected_hashable not in ref_list_hash and reflected_hashable not in master_hash:
-                        ref_list.append(reflected)
-                        ref_list_hash.add(reflected_hashable)
-            if len(ref_list) == 0:
-                break
-
-            master_list += ref_list
-            master_hash.update(ref_list_hash)
-        return sorted((self.basis_transform(x,"orthogonal", basis) for x in master_list), key=tuple)
+        if isinstance(weight,list):
+            return [reflection_matrix(x) for x in weight]
 
     def quadratic_form(self):
         r"""Returns the metric tensor of the algebra. Because of
@@ -702,30 +660,6 @@ class Standard_Cartan(Basic):
         for i in range(N-1):
             decomp += _tensor_product_decomp(self, weights[i], weights[i+1], basis)
         return decomp
-
-    def _reflection_matrices(self, weight=None):
-        """Returns reflection matricies depending on how
-        weight is (or isn't) passed.
-
-        - If weight is None, then
-        a set of reflection matrices generated from simple roots are
-        returned.
-        - If weight is type of Matrix then a single matrix
-        is returned by rotating the weight.
-        - If weight is type of list of matrix then
-        rotation are done on each and returned.
-        """
-        reflection_matrix = lambda v: eye(len(v)) - 2 * v.T * v / v.dot(v)
-
-        # simple_roots generated reflection matrices
-        if weight is None:
-            return [reflection_matrix(x) for x in self.simple_roots()]
-
-        if isinstance(weight, MatrixBase):
-            return reflection_matrix(weight)
-
-        if isinstance(weight,list):
-            return [reflection_matrix(x) for x in weight]
 
 @list2matrix
 def _chamber_rotate(algebra: Standard_Cartan, weight, basis):

@@ -1,5 +1,5 @@
 from .cartan_base import Standard_Cartan
-from sympy.core.backend import eye, ones, sqrt, Matrix
+from sympy.core.backend import Matrix, Rational
 
 
 class TypeE(Standard_Cartan):
@@ -63,28 +63,24 @@ class TypeE(Standard_Cartan):
         >>> from sympy.liealgebras.cartan_type import CartanType
         >>> c = CartanType("E6")
         >>> c.simple_root(2)
-        Matrix([[0, 1, -1, 0, 0, 0]])
+        Matrix([[-1, 1, 0, 0, 0, 0, 0, 0]])
 
         """
-        n = self.rank
-        e = eye(8)
+        e8 = [[Rational(1, 2), Rational(-1, 2), Rational(-1, 2),
+            Rational(-1, 2), Rational(-1, 2), Rational(-1, 2),
+            Rational(-1, 2), Rational(1, 2)],
+            [-1, 1, 0, 0, 0, 0, 0, 0],
+            [0, -1, 1, 0, 0, 0, 0, 0],
+            [0, 0, -1, 1, 0, 0, 0, 0],
+            [0, 0, 0, -1, 1, 0, 0, 0],
+            [0, 0, 0, 0, -1, 1, 0, 0],
+            [0, 0, 0, 0, 0, -1, 1, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0]]
 
-        if i == n:
-            root =  e.row(n-3) - e.row(n-2)
-        elif i == n - 1:
-            root = - ones(1,8) / 2
-        elif i == n - 2:
-            root = e.row(n-3) + e.row(n-2)
-        else:
-            root = e.row(i-1) - e.row(i)
-        root = root.tolist()[0]
-        if n != 8:
-            # in order to simplify the sum, we just use a static
-            # calculation and check whether this simple root has a
-            # nonzero index in the last index.
-            root[n-1] = sqrt(9-n) / 2 * int(root[n-1] != 0)
 
-        return Matrix([root[:n]])
+        roots = e8[:self.rank - 1] + [e8[-1]]
+        return Matrix([roots[i-1]])
+
 
 
     def roots(self):
@@ -122,3 +118,7 @@ class TypeE(Standard_Cartan):
         diag += "---".join("0" for i in range(1, n)) + "\n"
         diag += "1   " + "   ".join(str(i) for i in range(2,n))
         return diag
+
+    def orbit(self, weight, stabilizer=None):
+        """Returns the weyl orbit of the weight. Numpy backend is used"""
+        return super().orbit(weight, stabilizer=stabilizer, dtype=float, backend="numpy")
