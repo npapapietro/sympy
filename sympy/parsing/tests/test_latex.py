@@ -2,11 +2,11 @@ from sympy.testing.pytest import raises, XFAIL
 from sympy.external import import_module
 
 from sympy import (
-    Symbol, Mul, Add, Abs, sin, asin, cos, Pow,
-    csc, sec, Limit, oo, Derivative, Integral, factorial,
-    sqrt, root, StrictLessThan, LessThan, StrictGreaterThan,
-    GreaterThan, Sum, Product, E, log, tan, Function, binomial, exp,
-    floor, ceiling, Unequality
+    Symbol, Mul, Add, Abs, sin, asin, cos, Pow, csc, sec,
+    Limit, oo, Derivative, Integral, factorial, sqrt, root,
+    conjugate, StrictLessThan, LessThan, StrictGreaterThan,
+    GreaterThan, Sum, Product, E, log, tan, Function, binomial,
+    exp, floor, ceiling, Unequality
 )
 from sympy.core.relational import Eq, Ne, Lt, Le, Gt, Ge
 from sympy.physics.quantum.state import Bra, Ket
@@ -32,6 +32,14 @@ def _Mul(a, b):
 
 def _Pow(a, b):
     return Pow(a, b, evaluate=False)
+
+
+def _Sqrt(a):
+    return sqrt(a, evaluate=False)
+
+
+def _Conjugate(a):
+    return conjugate(a, evaluate=False)
 
 
 def _Abs(a):
@@ -87,10 +95,10 @@ GOOD_PAIRS = [
     ("\\left(  x + y\\right ) z", _Mul(_Add(x, y), z)),
     ("\\left[x + y\\right] z", _Mul(_Add(x, y), z)),
     ("\\left\\{x + y\\right\\} z", _Mul(_Add(x, y), z)),
-    ("1+1", Add(1, 1, evaluate=False)),
-    ("0+1", Add(0, 1, evaluate=False)),
-    ("1*2", Mul(1, 2, evaluate=False)),
-    ("0*1", Mul(0, 1, evaluate=False)),
+    ("1+1", _Add(1, 1)),
+    ("0+1", _Add(0, 1)),
+    ("1*2", _Mul(1, 2)),
+    ("0*1", _Mul(0, 1)),
     ("x = y", Eq(x, y)),
     ("x \\neq y", Ne(x, y)),
     ("x < y", Lt(x, y)),
@@ -178,6 +186,11 @@ GOOD_PAIRS = [
     ("\\sqrt[3]{\\sin x}", root(sin(x), 3)),
     ("\\sqrt[y]{\\sin x}", root(sin(x), y)),
     ("\\sqrt[\\theta]{\\sin x}", root(sin(x), theta)),
+    ("\\sqrt{\\frac{12}{6}}", _Sqrt(_Mul(12, _Pow(6, -1)))),
+    (r"\overline{z}", _Conjugate(z)),
+    (r"\overline{\overline{z}}", _Conjugate(_Conjugate(z))),
+    (r"\overline{x + y}", _Conjugate(_Add(x, y))),
+    (r"\overline{x} + \overline{y}", _Conjugate(x) + _Conjugate(y)),
     ("x < y", StrictLessThan(x, y)),
     ("x \\leq y", LessThan(x, y)),
     ("x > y", StrictGreaterThan(x, y)),
@@ -239,6 +252,7 @@ FAILING_PAIRS = [
     ("\\log_2 x", _log(x, 2)),
     ("\\log_a x", _log(x, a)),
 ]
+
 def test_failing_parseable():
     from sympy.parsing.latex import parse_latex
     for latex_str, sympy_expr in FAILING_PAIRS:
@@ -250,9 +264,11 @@ BAD_STRINGS = [
     "(",
     ")",
     "\\frac{d}{dx}",
-    "(\\frac{d}{dx})"
+    "(\\frac{d}{dx})",
     "\\sqrt{}",
     "\\sqrt",
+    "\\overline{}",
+    "\\overline",
     "{",
     "}",
     "\\mathit{x + y}",
@@ -282,7 +298,7 @@ BAD_STRINGS = [
     "*",
     "\\",
     "~",
-    "\\frac{(2 + x}{1 - x)}"
+    "\\frac{(2 + x}{1 - x)}",
 ]
 
 def test_not_parseable():

@@ -31,7 +31,7 @@ from sympy.simplify import simplify
 from sympy.tensor.indexed import Indexed
 from sympy.utilities.iterables import numbered_symbols
 
-from sympy.testing.pytest import (XFAIL, raises, skip, slow, SKIP)
+from sympy.testing.pytest import (XFAIL, raises, skip, slow, SKIP, _both_exp_pow)
 from sympy.testing.randtest import verify_numerically as tn
 from sympy.physics.units import cm
 
@@ -53,6 +53,7 @@ def dumeq(i, j):
     return i == j or i.dummy_eq(j)
 
 
+@_both_exp_pow
 def test_invert_real():
     x = Symbol('x', real=True)
 
@@ -702,6 +703,12 @@ def test_piecewise_solveset():
     f = BooleanTrue()
     assert solveset(f, x, domain=Interval(-3, 10)) == Interval(-3, 10)
 
+    # issue 20552
+    f = Piecewise((0, Eq(x, 0)), (x**2/Abs(x), True))
+    g = Piecewise((0, Eq(x, pi)), ((x - pi)/sin(x), True))
+    assert solveset(f, x, domain=S.Reals) == FiniteSet(0)
+    assert solveset(g) == FiniteSet(pi)
+
 
 def test_solveset_complex_polynomial():
     assert solveset_complex(a*x**2 + b*x + c, x) == \
@@ -791,6 +798,7 @@ def test_solveset_complex_tan():
         imageset(Lambda(n, pi*n + pi/2), S.Integers))
 
 
+@_both_exp_pow
 def test_solve_trig():
     from sympy.abc import n
     assert dumeq(solveset_real(sin(x), x),
@@ -1135,6 +1143,7 @@ def test_other_lambert():
         a, -a*LambertW(-log(a)/a)/log(a))
 
 
+@_both_exp_pow
 def test_solveset():
     f = Function('f')
     raises(ValueError, lambda: solveset(x + y))
@@ -2470,6 +2479,16 @@ def test_solve_modular():
 def test_issue_17276():
     assert nonlinsolve([Eq(x, 5**(S(1)/5)), Eq(x*y, 25*sqrt(5))], x, y) == \
      FiniteSet((5**(S(1)/5), 25*5**(S(3)/10)))
+
+
+def test_issue_10426():
+    x=Dummy('x')
+    a=Symbol('a')
+    n=Dummy('n')
+    assert (solveset(sin(x + a) - sin(x), a)).dummy_eq(Dummy('x')) == (Union(
+        ImageSet(Lambda(n, 2*n*pi), S.Integers),
+        Intersection(S.Complexes, ImageSet(Lambda(n, -I*(I*(2*n*pi + arg(-exp(-2*I*x))) + 2*im(x))),
+        S.Integers)))).dummy_eq(Dummy('x,n'))
 
 
 @XFAIL

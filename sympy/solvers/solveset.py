@@ -201,6 +201,11 @@ def _invert_real(f, g_ys, symbol):
 
     n = Dummy('n', real=True)
 
+    if isinstance(f, exp) or (f.is_Pow and f.base == S.Exp1):
+        return _invert_real(f.exp,
+                            imageset(Lambda(n, log(n)), g_ys),
+                            symbol)
+
     if hasattr(f, 'inverse') and not isinstance(f, (
             TrigonometricFunction,
             HyperbolicFunction,
@@ -333,12 +338,12 @@ def _invert_complex(f, g_ys, symbol):
         return _invert_complex(f.args[0],
                                imageset(Lambda(n, f.inverse()(n)), g_ys), symbol)
 
-    if isinstance(f, exp):
+    if isinstance(f, exp) or (f.is_Pow and f.base == S.Exp1):
         if isinstance(g_ys, FiniteSet):
             exp_invs = Union(*[imageset(Lambda(n, I*(2*n*pi + arg(g_y)) +
                                                log(Abs(g_y))), S.Integers)
                                for g_y in g_ys if g_y != 0])
-            return _invert_complex(f.args[0], exp_invs, symbol)
+            return _invert_complex(f.exp, exp_invs, symbol)
 
     return (f, g_ys)
 
@@ -434,7 +439,27 @@ def _domain_check(f, symbol, p):
         return True
     elif f.subs(symbol, p).is_infinite:
         return False
+    elif isinstance(f, Piecewise):
+        # Check the cases of the Piecewise in turn. There might be invalid
+        # expressions in later cases that don't apply e.g.
+        #    solveset(Piecewise((0, Eq(x, 0)), (1/x, True)), x)
+        for expr, cond in f.args:
+            condsubs = cond.subs(symbol, p)
+            if condsubs is S.false:
+                continue
+            elif condsubs is S.true:
+                return _domain_check(expr, symbol, p)
+            else:
+                # We don't know which case of the Piecewise holds. On this
+                # basis we cannot decide whether any solution is in or out of
+                # the domain. Ideally this function would allow returning a
+                # symbolic condition for the validity of the solution that
+                # could be handled in the calling code. In the mean time we'll
+                # give this particular solution the benefit of the doubt and
+                # let it pass.
+                return True
     else:
+        # TODO : We should not blindly recurse through all args of arbitrary expressions like this
         return all([_domain_check(g, symbol, p)
                     for g in f.args])
 
